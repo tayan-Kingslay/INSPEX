@@ -34,6 +34,23 @@ function toggleSearch(){document.getElementById('searchBox').classList.toggle('o
 function filterCategory(cat){selectedCategory=cat;render();show('home')}function searchStories(){render()}
 function date(d){return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}).replace('.','').toUpperCase()}
 function render(){const q=document.getElementById('searchInput').value.trim().toLowerCase();const list=articles.filter(a=>(!selectedCategory||a.category===selectedCategory)&&(!q||(a.title+' '+a.summary).toLowerCase().includes(q)));document.querySelector('.feed').innerHTML=list.map(a=>'<article class="feedcard" onclick="openArticle(\''+a.id+'\')"><div class="feedimg" '+(a.image_url?'style="background-image:url('+JSON.stringify(a.image_url)+');background-size:cover;background-position:center"':'')+'></div><div><span class="feedtag">'+esc(a.category)+'</span><h3>'+esc(a.title)+'</h3><p>'+esc(a.summary)+'</p><span class="read">Ler mais →</span></div></article>').join('')||'<p>Nenhuma matéria encontrada.</p>';const h=list[0];const main=document.querySelector('.mainstory');if(h){main.dataset.id=h.id;main.innerHTML='<h1>'+esc(h.title)+'</h1><p class="desc">'+esc(h.summary)+'</p><div class="story-image" '+(h.image_url?'style="background-image:url('+JSON.stringify(h.image_url)+');background-size:cover;background-position:center"':'')+'></div>'}else{main.innerHTML='<h1>Nenhuma matéria publicada ainda.</h1><p class="desc">Acesse a Área ADM para publicar a primeira notícia.</p><div class="story-image"></div>'}}
+async function sendTip(){
+const name=document.getElementById('tipName').value.trim()||'Anônimo';
+const title=document.getElementById('tipTitle').value.trim();
+const category=document.getElementById('tipCategory').value;
+const content=document.getElementById('tipText').value.trim();
+const source=document.getElementById('tipSource').value.trim()||null;
+const out=document.getElementById('submitMessage');
+if(!title||!content){out.textContent='Preencha o título e conte a sua ideia.';return}
+out.textContent='Enviando...';
+const result=await db.from('inspex_submissions').insert({name,title,category,content,source_url:source,status:'pending'});
+if(result.error){out.textContent='Não foi possível enviar agora. Tente novamente.';return}
+document.getElementById('tipName').value='';
+document.getElementById('tipTitle').value='';
+document.getElementById('tipText').value='';
+document.getElementById('tipSource').value='';
+out.textContent='Ideia enviada! Ela será analisada pela equipe do INSPEX.';
+}
 async function openArticle(id){const a=articles.find(x=>x.id===id);if(!a)return;document.querySelector('.article-tag').textContent=a.category;document.querySelector('.article h1').textContent=a.title;document.querySelector('.article .meta').textContent=(a.author||'INSPEX')+' · '+date(a.published_at||a.created_at);const im=document.querySelector('.article-image');im.style.backgroundImage=a.image_url?'url('+JSON.stringify(a.image_url)+')':'';im.style.backgroundSize='cover';im.style.backgroundPosition='center';document.querySelector('.article-body').innerHTML=a.content.split(/\n\s*\n/).map(p=>'<p>'+esc(p)+'</p>').join('')+(a.source_url?'<div class="links"><h2>Fonte</h2><a target="_blank" rel="noopener" href="'+esc(a.source_url)+'">Abrir fonte →</a></div>':'');show('article')}
 async function load(){const r=await db.from('inspex_articles').select('*').eq('published',true).order('published_at',{ascending:false}).order('created_at',{ascending:false});if(r.error){console.error(r.error);return}articles=r.data||[];render()}load();
 </script></script>
